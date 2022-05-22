@@ -1,10 +1,11 @@
 import bad_commit_message_blocker_sample
+import test
 
 
 class CommitMsgCorrector:
-    def __init__(self, userID, commit_msg: list):
+    def __init__(self, userID):
         self.user = userID
-        self.commit_data = commit_msg
+        self.commit_data = test.get_test_data()
         self.result = dict()
 
     def run(self):
@@ -22,11 +23,11 @@ def trash_commit_judge(message):
 
     return False
 
+
 def auto_commit_judge(message):
     if message.find('Merge pull request #') != -1:
         return True
     elif message.find("Merge branch '") != -1:
         return True
-    
-    return False
 
+    return False
