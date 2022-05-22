@@ -1,5 +1,27 @@
+import json
+import os
+from google.cloud import language_v1
 import bad_commit_message_blocker_sample
 import test
+
+secret_file = "./secrets.json"
+
+with open(secret_file) as f:
+    secrets = json.loads(f.read())
+
+
+def get_secret(setting):
+    """ 비밀 변수를 가져오거나 명시적 예외를 반환
+    """
+    try:
+        return secrets[setting]
+    except KeyError:
+        error_msg = "Set the {} environment variable".format(setting)
+        raise print(error_msg)
+
+
+credential_path = get_secret("GCP_SECRET_PATH")
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
 
 
 class CommitMsgCorrector:
@@ -9,8 +31,9 @@ class CommitMsgCorrector:
         self.result = dict()
 
     def run(self):
-        for msg in self.commit_data:
-            bad_commit_message_blocker_sample.check(msg)
+        for msg in self.commit_data[:5]:
+            if auto_commit_judge(msg) or trash_commit_judge(msg):
+                continue  # 이런 msg 도 분류 작업이 필요
 
 
 def trash_commit_judge(message):
