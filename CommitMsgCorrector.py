@@ -34,6 +34,7 @@ class CommitMsgCorrector:
         for msg in self.commit_data[:5]:
             if auto_commit_judge(msg) or trash_commit_judge(msg):
                 continue  # 이런 msg 도 분류 작업이 필요
+            analyze_syntax("you " + msg.lower())  # 2인칭 주어 you 로 정확도 상향 (그것도 엄청!)
 
 
 def trash_commit_judge(message):
@@ -54,3 +55,18 @@ def auto_commit_judge(message):
         return True
 
     return False
+
+
+def analyze_syntax(message):
+    res = []
+
+    client = language_v1.LanguageServiceClient()
+    type_ = language_v1.Document.Type.PLAIN_TEXT
+    language = "en"
+    document = {"content": message, "type_": type_, "language": language}
+
+    encoding_type = language_v1.EncodingType.UTF8
+
+    response = client.analyze_syntax(request={'document': document, 'encoding_type': encoding_type})
+
+    print(response)
