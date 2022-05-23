@@ -32,9 +32,18 @@ class CommitMsgCorrector:
 
     def run(self):
         for msg in self.commit_data[:7]:
-            if auto_commit_judge(msg) or trash_commit_judge(msg):
-                continue  # 이런 msg 도 분류 작업이 필요
-            analyze_syntax("you " + msg.lower())  # 2인칭 주어 you 로 정확도 상향 (그것도 엄청!)
+            check(msg)
+
+
+def check(message):
+    """ Check if a commit message is good or bad based on commit message convention
+
+        :param message: A commit message
+        :return:
+    """
+    if auto_commit_judge(message) or trash_commit_judge(message):
+        return  # 이런 msg 도 분류 작업이 필요
+    analyze_syntax("you " + message.lower())  # 2인칭 주어 you 로 정확도 상향 (그것도 엄청!)
 
 
 def trash_commit_judge(message):
