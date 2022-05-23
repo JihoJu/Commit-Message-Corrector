@@ -1,5 +1,27 @@
-import bad_commit_message_blocker_sample
+import json
+import re
+import os
+from google.cloud import language_v1
 import test
+
+secret_file = "./secrets.json"
+
+with open(secret_file) as f:
+    secrets = json.loads(f.read())
+
+
+def get_secret(setting):
+    """ 비밀 변수를 가져오거나 명시적 예외를 반환
+    """
+    try:
+        return secrets[setting]
+    except KeyError:
+        error_msg = "Set the {} environment variable".format(setting)
+        raise print(error_msg)
+
+
+credential_path = get_secret("GCP_SECRET_PATH")
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
 
 
 class CommitMsgCorrector:
@@ -9,8 +31,10 @@ class CommitMsgCorrector:
         self.result = dict()
 
     def run(self):
-        for msg in self.commit_data:
-            bad_commit_message_blocker_sample.check(msg)
+        for msg in self.commit_data[:7]:
+            if auto_commit_judge(msg) or trash_commit_judge(msg):
+                continue  # 이런 msg 도 분류 작업이 필요
+            analyze_syntax("you " + msg.lower())  # 2인칭 주어 you 로 정확도 상향 (그것도 엄청!)
 
 
 def trash_commit_judge(message):
@@ -31,3 +55,55 @@ def auto_commit_judge(message):
         return True
 
     return False
+
+
+def check_type_is_specified(commit_type):
+    commit_type_list = ["feat:", "fix:", "design:", "build:", "chore:", "ci:", "docs:", "style:", "refactor:", "test:",
+                        "rename:", "remove:", "perf", "solution"]
+    if commit_type in commit_type_list:
+        return True
+
+    return False
+
+
+def check_type_in_bracket(commit_type):
+    pattern = re.compile(r'\[[A-Za-z]*\]')
+
+    try:
+        res = pattern.match(commit_type)
+    except res is None:
+        return False
+
+    return True
+
+
+def analyze_syntax(message: str):
+    """
+
+    :param message: you + commit message
+        ex) message: you feat: add document
+    :return:
+    """
+    res = []
+
+    client = language_v1.LanguageServiceClient()
+    type_ = language_v1.Document.Type.PLAIN_TEXT
+    language = "en"
+    document = {"content": message, "type_": type_, "language": language}
+
+    encoding_type = language_v1.EncodingType.UTF8
+
+    response = client.analyze_syntax(request={'document': document, 'encoding_type': encoding_type})
+    tokens = response.tokens
+    """
+        check_type_is_specified() 함수 인자: feat 과 : 를 합친 string 값
+        ex) message: you feat: add document
+    """
+    if tokens[1].text.content == '[' and check_type_in_bracket("".join(map(lambda x: x.text.content, tokens[1:4]))):
+        print(response.sentences[0].text.content)
+    if check_type_is_specified("".join(map(lambda x: x.text.content, tokens[1:3]))):
+        print(response.sentences[0].text.content)
+
+
+aa = CommitMsgCorrector("aa")
+aa.run()
