@@ -77,6 +77,28 @@ def check_type_in_bracket(commit_type):
     return True
 
 
+def check_subject_uses_imperative(token):
+    """
+        Token (word) 가 동사, 시제(과거형, 현재), 3인칭 동사(runs, adds, etc) 인지를 판별
+
+        :param token: language_v1.Token Object
+        :return:
+    """
+
+    part_of_speech = token.part_of_speech
+    if language_v1.PartOfSpeech.Tag(part_of_speech.tag).name != "VERB":
+        print("동사 아님")
+        return False
+    else:
+        if language_v1.PartOfSpeech.Tense(part_of_speech.tense).name == "PAST":
+            print("과거형")
+            return False
+        if language_v1.PartOfSpeech.Person(part_of_speech.person).name == "THIRD":
+            print("3인칭 동사", token.text)
+            return False
+    return True
+
+
 def analyze_syntax(message: str):
     """
 
@@ -103,6 +125,8 @@ def analyze_syntax(message: str):
         print(response.sentences[0].text.content)
     if check_type_is_specified("".join(map(lambda x: x.text.content, tokens[1:3]))):
         print(response.sentences[0].text.content)
+    if check_subject_uses_imperative(tokens[1]):
+        print("확인")
 
 
 aa = CommitMsgCorrector("aa")
