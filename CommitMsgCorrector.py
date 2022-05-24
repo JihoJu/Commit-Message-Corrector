@@ -52,6 +52,8 @@ def check(message):
     # Git 에서 자동 생성된 commit, 숫자만 있는 case, 빈 commit message, commit message 글자 수 1개 이하 case -> 쓰레기 data 분류
     if auto_commit_judge(message) or trash_commit_judge(message):
         return  # 이런 msg 도 분류 작업이 필요
+    if check_subject_does_not_end_with_punctuation(message):
+        print(check_subject_does_not_end_with_punctuation(message))
     # commit message subject 에 commit type 을 포함 여부 확인
     if check_type_is_specified(message):
         parsed_message = check_type_is_specified(message)
@@ -80,6 +82,20 @@ def auto_commit_judge(message):
         return True
 
     return False
+
+
+def check_subject_does_not_end_with_punctuation(message):
+    """ Check if subject ends with period
+
+        :param message: A commit message
+        :return check_result: subject 마지막 문자가 punctuation 이 아닌 경우 True / 맞다면 False
+    """
+    punctuation_pattern = re.compile(r'[!.?](?:\s+)?$(?<=)')
+
+    lines = message.splitlines()
+    check_result = not punctuation_pattern.match(lines[0][-1])
+
+    return check_result
 
 
 def check_type_is_specified(message: str):
