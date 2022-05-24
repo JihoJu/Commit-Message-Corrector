@@ -54,6 +54,8 @@ def check(message):
     # Git 에서 자동 생성된 commit, 숫자만 있는 case, 빈 commit message, commit message 글자 수 1개 이하 case -> 쓰레기 data 분류
     if auto_commit_judge(message) or trash_commit_judge(message):
         return  # 이런 msg 도 분류 작업이 필요
+    if check_subject_is_separated_from_body(message):
+        print("subject, body 분리 ok")
     if check_subject_is_not_too_long(message, DEFAULT_SUBJECT_LIMIT):
         print("Subject 50 자를 넘지 않는다.")
     if check_subject_does_not_end_with_punctuation(message):
@@ -88,6 +90,23 @@ def auto_commit_judge(message):
         return True
 
     return False
+
+
+def check_subject_is_separated_from_body(message):
+    """ Check if subject is separated from body
+
+        :param message: A commit message
+        :return check_result: subject 와 body 가 분리되어 있으면 True or not True (False)
+    """
+    lines = message.splitlines()
+    if len(lines) > 1:
+        # The second line should be empty
+        check_result = not lines[1]
+    else:
+        # If there is just one line then this rule doesn't apply
+        check_result = True
+
+    return check_result
 
 
 def check_subject_is_not_too_long(message, subject_limit):
