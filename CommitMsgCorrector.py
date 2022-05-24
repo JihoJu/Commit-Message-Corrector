@@ -4,6 +4,8 @@ import os
 from google.cloud import language_v1
 import test
 
+DEFAULT_SUBJECT_LIMIT = 50
+DEFAULT_BODY_LIMIT = 72
 secret_file = "./secrets.json"
 
 with open(secret_file) as f:
@@ -52,6 +54,8 @@ def check(message):
     # Git 에서 자동 생성된 commit, 숫자만 있는 case, 빈 commit message, commit message 글자 수 1개 이하 case -> 쓰레기 data 분류
     if auto_commit_judge(message) or trash_commit_judge(message):
         return  # 이런 msg 도 분류 작업이 필요
+    if check_subject_is_not_too_long(message, DEFAULT_SUBJECT_LIMIT):
+        print("Subject 50 자를 넘지 않는다.")
     if check_subject_does_not_end_with_punctuation(message):
         print(check_subject_does_not_end_with_punctuation(message))
     # commit message subject 에 commit type 을 포함 여부 확인
@@ -62,6 +66,8 @@ def check(message):
         parsed_message = check_type_in_bracket(message)
     # commit message 가 명령문인 지 확인
     check_subject_uses_imperative(parsed_message)
+    if check_body_lines_are_not_too_long(message, DEFAULT_BODY_LIMIT):
+        print("Body line 이 72 자를 넘지 않는다.")
 
 
 def trash_commit_judge(message):
@@ -82,6 +88,36 @@ def auto_commit_judge(message):
         return True
 
     return False
+
+
+def check_subject_is_not_too_long(message, subject_limit):
+    """ Check if subject is too long
+
+        :param message: A commit message
+        :param subject_limit: Limited number of characters for subject
+        :return check_result: 50자를 넘지 않으면 True or not Ture (False)
+    """
+    lines = message.splitlines()
+    check_result = len(lines[0]) <= subject_limit
+
+    return check_result
+
+
+def check_body_lines_are_not_too_long(message, body_limit):
+    """ Check if body is too long
+
+        :param message: A commit message
+        :param body_limit: Limited number of characters for body
+        :return check_result: 72자를 넘지 않으면 True or not Ture (False)
+    """
+    lines = message.splitlines()
+    check_result = True
+    for line in lines:
+        if len(line) > body_limit:
+            check_result = False
+            break
+
+    return check_result
 
 
 def check_subject_does_not_end_with_punctuation(message):
