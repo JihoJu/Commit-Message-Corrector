@@ -31,7 +31,7 @@ class CommitMsgCorrector:
         self.result = dict()
 
     def run(self):
-        for msg in self.commit_data[:7]:
+        for msg in self.commit_data[:30]:
             check(msg)
 
 
@@ -48,17 +48,18 @@ def check(message):
         :param message: A commit message
         :return:
     """
-
+    parsed_message = message
     # Git 에서 자동 생성된 commit, 숫자만 있는 case, 빈 commit message, commit message 글자 수 1개 이하 case -> 쓰레기 data 분류
     if auto_commit_judge(message) or trash_commit_judge(message):
         return  # 이런 msg 도 분류 작업이 필요
     # commit message subject 에 commit type 을 포함 여부 확인
     if check_type_is_specified(message):
-        print(check_type_is_specified(message))
+        parsed_message = check_type_is_specified(message)
     # commit message subject 에 bracket 안 어느 type 포함 여부 확인 ex) [DevTools]
     elif check_type_in_bracket(message):
-        print(check_type_in_bracket(message))
-    analyze_syntax("you " + message.lower())  # 2인칭 주어 you 로 정확도 상향 (그것도 엄청!)
+        parsed_message = check_type_in_bracket(message)
+    # commit message 가 명령문인 지 확인
+    check_subject_uses_imperative(parsed_message)
 
 
 def trash_commit_judge(message):
@@ -127,52 +128,50 @@ def check_type_in_bracket(message: str):
     return sub_bracket_msg
 
 
-def check_subject_uses_imperative(token):
-    """
-        Token (word) 가 동사, 시제(과거형, 현재), 3인칭 동사(runs, adds, etc) 인지를 판별
+def check_subject_uses_imperative(message: str):
+    """ Determine if a commit message's mood is imperative
 
-        :param token: language_v1.Token Object
+        Follow the following rules
+            - message 를 모두 소문자로 변경
+            - 정확도 향상을 위해 you + message 로 구문 분석을 진행
+            - 첫 번째 토큰(word) 가 부사일 경우 두 번째 토큰(word) 를 token 으로 지정
+                - "fix: correctly fix ~~" 와 같은 commit message 를 고려
+            - token 이 동사인 경우
+                - 3인칭 동사: runs, presents, fixes etc
+                - 과거형 동사: fixed, updated etc
+                2가지 case 를 고려
+
+        :param message: A commit message
         :return:
     """
-
-    part_of_speech = token.part_of_speech
-    if language_v1.PartOfSpeech.Tag(part_of_speech.tag).name != "VERB":
-        print("동사 아님")
-        return False
-    else:
-        if language_v1.PartOfSpeech.Tense(part_of_speech.tense).name == "PAST":
-            print("과거형")
-            return False
-        if language_v1.PartOfSpeech.Person(part_of_speech.person).name == "THIRD":
-            print("3인칭 동사", token.text)
-            return False
-    return True
-
-
-def analyze_syntax(message: str):
-    """
-
-    :param message: you + commit message
-        ex) message: you feat: add document
-    :return:
-    """
-    res = []
-
     client = language_v1.LanguageServiceClient()
     type_ = language_v1.Document.Type.PLAIN_TEXT
     language = "en"
-    document = {"content": message, "type_": type_, "language": language}
+    # 2인칭 주어 you 로 정확도 상향 (그것도 엄청!)
+    document = {"content": "you " + message.lower(), "type_": type_, "language": language}
 
     encoding_type = language_v1.EncodingType.UTF8
 
     response = client.analyze_syntax(request={'document': document, 'encoding_type': encoding_type})
-    tokens = response.tokens
-    """
-        check_type_is_specified() 함수 인자: feat 과 : 를 합친 string 값
-        ex) message: you feat: add document
-    """
-    if check_subject_uses_imperative(tokens[1]):
-        print("확인")
+    token = response.tokens[1]  # index 0 은 you
+
+    # 첫 번째 token 이 부사인 경우를 고려 ex) fix: correctly fix ~~
+    token = response.tokens[2] if language_v1.PartOfSpeech.Tag(token.part_of_speech.tag).name == "ADV" else token
+
+    part_of_speech = token.part_of_speech
+    if language_v1.PartOfSpeech.Tag(part_of_speech.tag).name != "VERB":
+        print("동사 아님", token.text)
+        return False
+    else:
+        if language_v1.PartOfSpeech.Tense(part_of_speech.tense).name == "PAST":
+            print("과거형", token.text)
+            return False
+        if language_v1.PartOfSpeech.Person(part_of_speech.person).name == "THIRD":
+            print("3인칭 동사", token.text)
+            return False
+    print("동사!!", token.text)
+
+    return True
 
 
 aa = CommitMsgCorrector("aa")
