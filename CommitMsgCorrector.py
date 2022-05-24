@@ -174,31 +174,5 @@ def check_subject_uses_imperative(message: str):
     return True
 
 
-def analyze_syntax(message: str):
-    """
-
-    :param message: you + commit message
-        ex) message: you feat: add document
-    :return:
-    """
-    res = []
-
-    client = language_v1.LanguageServiceClient()
-    type_ = language_v1.Document.Type.PLAIN_TEXT
-    language = "en"
-    document = {"content": message, "type_": type_, "language": language}
-
-    encoding_type = language_v1.EncodingType.UTF8
-
-    response = client.analyze_syntax(request={'document': document, 'encoding_type': encoding_type})
-    tokens = response.tokens
-    """
-        check_type_is_specified() 함수 인자: feat 과 : 를 합친 string 값
-        ex) message: you feat: add document
-    """
-    if check_subject_uses_imperative(tokens[1]):
-        print("확인")
-
-
 aa = CommitMsgCorrector("aa")
 aa.run()
