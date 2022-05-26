@@ -50,7 +50,6 @@ def check(message):
         :param message: A commit message
         :return:
     """
-    parsed_message = message
     # Git 에서 자동 생성된 commit, 숫자만 있는 case, 빈 commit message, commit message 글자 수 1개 이하 case -> 쓰레기 data 분류
     if auto_commit_judge(message) or trash_commit_judge(message):
         return  # 이런 msg 도 분류 작업이 필요
@@ -63,11 +62,17 @@ def check(message):
     # commit message subject 에 commit type 을 포함 여부 확인
     if check_type_is_specified(message):
         parsed_message = check_type_is_specified(message)
+        case = 1  # case 1: commit message subject 가 특정 type 으로 시작한 경우
     # commit message subject 에 bracket 안 어느 type 포함 여부 확인 ex) [DevTools]
     elif check_type_in_bracket(message):
         parsed_message = check_type_in_bracket(message)
+        case = 2  # case 2: commit message subject 가 bracket 으로 감싸진 어느 type 으로 시작한 경우
+    else:  # commit message 가 다음 case 에 포함되지 않는 경우 (1. commit type, 2. Type in Bracket)
+        parsed_message = message
+        case = 3  # case 3: case 1, case 2 에 해당되지 않는 경우
     # commit message 가 명령문인 지 확인
-    check_subject_uses_imperative(parsed_message)
+    if check_subject_uses_imperative(parsed_message):
+        print(check_subject_is_capitalized(parsed_message, case))  # check if commit message subject is capitalized)
     if check_body_lines_are_not_too_long(message, DEFAULT_BODY_LIMIT):
         print("Body line 이 72 자를 넘지 않는다.")
 
@@ -243,6 +248,26 @@ def check_subject_uses_imperative(message: str):
     print("동사!!", token.text)
 
     return True
+
+
+def check_subject_is_capitalized(message: str, case: int):
+    """ Check if commit message subject is capitalized
+
+        :param message: A commit message
+        :param case:
+            case 1: commit message subject 가 특정 type 으로 시작한 경우
+            case 2: commit message subject 가 bracket 으로 감싸진 어느 type 으로 시작한 경우
+            case 3: case 1, case 2 에 해당되지 않는 경우
+        :return check_result:
+            - case 1: 특정 type 뒤 시작 word 가 소문자 True / or not True (false)
+            - case 2: bracket 뒤 VERB is capitalized True / or not True (false)
+            - case 3: 시작 VERB is capitalized True / or not True (false)
+    """
+    lines = message.splitlines()
+    # Check if first character is in upper case
+    check_result = lines[0][0].isupper() if case != 1 else lines[0][0].islower()
+    print("결과: ", check_result)
+    return check_result
 
 
 aa = CommitMsgCorrector("aa")
