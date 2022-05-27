@@ -9,5 +9,12 @@ class CommitMsgCorrector:
         self.result = dict()
 
     def run(self):
-        for msg in self.commit_data[:30]:
-            check(msg)
+        for commit_message in self.commit_data[:5]:
+            self.result[commit_message] = check(commit_message)
+
+        for result in self.result.items():
+            print(result)
+
+
+aa = CommitMsgCorrector("a")
+aa.run()
