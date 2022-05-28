@@ -9,7 +9,7 @@ class CommitMsgCorrector:
         self.result = dict()
 
     def run(self):
-        for commit_message in self.commit_data[:5]:
+        for commit_message in self.commit_data:
             self.result[commit_message] = check(commit_message)
 
         for result in self.result.items():
