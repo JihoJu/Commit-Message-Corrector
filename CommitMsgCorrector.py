@@ -14,7 +14,3 @@ class CommitMsgCorrector:
 
         for result in self.result.items():
             print(result)
-
-
-aa = CommitMsgCorrector("a")
-aa.run()
